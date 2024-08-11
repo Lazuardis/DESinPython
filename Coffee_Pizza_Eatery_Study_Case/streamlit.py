@@ -6,7 +6,7 @@ from Eatery_Model import EaterySimulation
 # Cache the simulation results to avoid rerunning the simulation on every interaction
 @st.cache_data
 def run_eatery_simulation(inter_arrival_time, front_staff_cap, back_staff_cap, two_seater_cap, four_seater_cap, run_time):
-    random.seed(100)
+    # random.seed(100)
     env = simpy.Environment()
     eatery_simulation = EaterySimulation(
         env, 
