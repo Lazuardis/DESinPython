@@ -19,6 +19,8 @@ class EaterySimulation:
         self.front_staff_utility = 0
         self.back_staff_utility = 0
         self.customer_waiting_time = []
+        self.arriving_time = []
+
         
         self.processing_time = {
             "till_process": random.uniform(1, 3),
@@ -29,7 +31,8 @@ class EaterySimulation:
 
     def customer_arrival(self, inter_arrival_time):
         while True:
-            yield self.env.timeout(inter_arrival_time)
+            yield self.env.timeout(random.expovariate(1/inter_arrival_time))
+            self.arriving_time.append(self.env.now)
             self.customer_count += 1
             customer_type = random.choices([1, 2, 3, 4], [0.4, 0.3, 0.2, 0.1])[0]
             self.env.process(self.till_activity(self.customer_count, customer_type))
@@ -182,8 +185,8 @@ class EaterySimulation:
         self.env.run(until=run_time)
         
         results = {
-            "average_waiting_time": np.mean(self.customer_waiting_time),
-            "average_waiting_customer": np.mean(self.waiting_customer_array),
+            "average_waiting_time": np.mean([max(0, x) for x in self.customer_waiting_time]),
+            "average_waiting_customer": np.mean([max(0, x) for x in self.waiting_customer_array]),
             "front_staff_util": np.mean(self.front_staff_util_array) / self.front_staff.capacity,
             "back_staff_util": np.mean(self.back_staff_util_array) / self.back_staff.capacity,
             "twoseater_util": np.mean(self.twoseater_util_array) / self.two_seater.capacity,
@@ -192,7 +195,9 @@ class EaterySimulation:
             "front_staff_util_array": self.front_staff_util_array,
             "back_staff_util_array": self.back_staff_util_array,
             "twoseater_util_array": self.twoseater_util_array,
-            "fourseater_util_array": self.fourseater_util_array
+            "fourseater_util_array": self.fourseater_util_array,
+            "customer_count": self.customer_count,
+            "arrival_times": [self.arriving_time[0]] + [j - i for i, j in zip(self.arriving_time[:-1], self.arriving_time[1:])]
         }
         
         return results

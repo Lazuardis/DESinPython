@@ -2,9 +2,11 @@ import streamlit as st
 import simpy
 import random
 from Eatery_Model import EaterySimulation
+import seaborn as sns
+import matplotlib.pyplot as plt
 
 # Cache the simulation results to avoid rerunning the simulation on every interaction
-@st.cache_data
+# @st.cache_data
 def run_eatery_simulation(inter_arrival_time, front_staff_cap, back_staff_cap, two_seater_cap, four_seater_cap, run_time):
     # random.seed(100)
     env = simpy.Environment()
@@ -17,7 +19,7 @@ def run_eatery_simulation(inter_arrival_time, front_staff_cap, back_staff_cap, t
     )
     
     results = eatery_simulation.run_simulation(
-        inter_arrival_time=random.expovariate(1/inter_arrival_time), 
+        inter_arrival_time=inter_arrival_time, 
         run_time=run_time
     )
     
@@ -56,14 +58,20 @@ if st.button("Run Simulation"):
 if 'simulation_results' in st.session_state:
     results = st.session_state['simulation_results']
     
-    # Display Results as Metrics
-    st.metric("Average Customer Waiting Time (minutes)", f"{results['average_waiting_time']:.1f}")
-    st.metric("Average Number of Waiting Customers", f"{results['average_waiting_customer']:.1f}")
-    st.metric("Front Staff Utilization", f"{results['front_staff_util']:.1f}")
-    st.metric("Back Staff Utilization", f"{results['back_staff_util']:.1f}")
-    st.metric("Two-Seater Utilization", f"{results['twoseater_util']:.1f}")
-    st.metric("Four-Seater Utilization", f"{results['fourseater_util']:.1f}")
-    st.metric("Number of Customers Served", f"{results['customer_served']}")
+    # Display Results as Metrics in two columns
+    col1, col2 = st.columns(2)
+    
+    with col1:
+        st.metric("Average Customer Waiting Time (minutes)", f"{results['average_waiting_time']:.1f}")
+        st.metric("Average Number of Waiting Customers", f"{results['average_waiting_customer']:.1f}")
+        st.metric("Front Staff Utilization", f"{results['front_staff_util']:.1f}")
+        st.metric("Customer Count (Group)", f"{results['customer_count']}")
+    
+    with col2:
+        st.metric("Back Staff Utilization", f"{results['back_staff_util']:.1f}")
+        st.metric("Two-Seater Utilization", f"{results['twoseater_util']:.1f}")
+        st.metric("Four-Seater Utilization", f"{results['fourseater_util']:.1f}")
+        st.metric("Number of Customers Served", f"{results['customer_served']}")
     
     # show the back staff, two seater, and four seater utilization array in a line chart with dropdown
     st.title("Utilization Array")
@@ -91,3 +99,16 @@ if 'simulation_results' in st.session_state:
         st.line_chart(chart_data)
     else:
         st.write("Please select at least one metric to display.")
+        
+    
+    # Display using histogram the customer arrival time distribution
+    st.title("Customer Arrival Time Distribution")
+    st.write("Histogram of customer arrival time distribution")
+    
+
+    # Create the histogram using seaborn
+    plt.figure(figsize=(10, 6))  # Optional: Adjust figure size
+    sns.histplot(results["arrival_times"], bins=20, kde=True)
+
+    # Display the plot in Streamlit
+    st.pyplot(plt)
