@@ -23,7 +23,10 @@ def app():
 
     if st.button('Run Multiple Simulations'):
         # Send request to Flask server
-        response = requests.post('http://127.0.0.1:5000/run_simulation', json={
+        response = requests.post(
+            # 'http://127.0.0.1:5000/run_simulation', 
+            'https://db1a-35-202-194-168.ngrok-free.app/run_simulation',
+            json={
             'num_dentists': num_dentists,
             'num_desk_staff': num_desk_staff,
             'num_seats': num_seats,

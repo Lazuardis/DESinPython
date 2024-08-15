@@ -10,6 +10,10 @@ data_store = {
     "interarrival_distribution": "random.expovariate(1.0 / 5)"
 }
 
+@app.route('/')
+def home():
+    return f"It is running"
+
 @app.route('/set_distribution', methods=['POST'])
 def set_distribution():
     data = request.json

@@ -9,7 +9,8 @@ import requests
 def app():
     def run_simulation(num_dentists, num_desk_staff, num_seats, sim_time):
         
-        response = requests.get('http://127.0.0.1:5000/get_distribution')
+        # response = requests.get('http://127.0.0.1:5000/get_distribution')
+        response = requests.get('https://db1a-35-202-194-168.ngrok-free.app/get_distribution')
         
         if response.status_code == 200:
             interarrival_distribution = response.json()['interarrival_distribution']

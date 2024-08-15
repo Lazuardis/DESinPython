@@ -41,7 +41,8 @@ def app():
         if st.button('Save and Use Distribution Data'):
         # POST the interarrival_distribution to the Flask server
             response = requests.post(
-                'http://127.0.0.1:5000/set_distribution', 
+                # 'http://127.0.0.1:5000/set_distribution', 
+                'https://db1a-35-202-194-168.ngrok-free.app/set_distribution',
                 json={'interarrival_distribution': interarrival_distribution}
             )
             
