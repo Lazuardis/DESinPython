@@ -1,28 +1,43 @@
 import streamlit as st
 import simpy
 import random
-from dental_model import DentalClinic, customer_arrivals
+from dental_model import DentalClinic, customer_arrivals_on_distribution, customer_arrivals_on_schedule
 import matplotlib.pyplot as plt
 import seaborn as sns
 import requests
 
 def app():
-    def run_simulation(num_dentists, num_desk_staff, num_seats, sim_time):
-        
-        # response = requests.get('http://127.0.0.1:5000/get_distribution')
-        response = requests.get('https://db1a-35-202-194-168.ngrok-free.app/get_distribution')
-        
-        if response.status_code == 200:
-            interarrival_distribution = response.json()['interarrival_distribution']
-        else:
-            # Default value if the server request fails
-            interarrival_distribution = 'random.expovariate(1.0 / 5)'
+    def run_simulation(num_dentists, num_desk_staff, num_seats, sim_time, interarrival_type):
         
         # random.seed(random_seed)
         env = simpy.Environment()
 
-        clinic = DentalClinic(env, num_dentists, num_desk_staff, num_seats)
-        env.process(customer_arrivals(env, clinic, interarrival_distribution))
+        clinic = DentalClinic(env, num_dentists, num_desk_staff, num_seats) 
+
+        if interarrival_type == 'By Fitted Distribution':
+            response = requests.get('http://127.0.0.1:5000/get_distribution')
+            # response = requests.get('https://db1a-35-202-194-168.ngrok-free.app/get_distribution')
+            
+            if response.status_code == 200:
+                interarrival_distribution = response.json()['interarrival_distribution']
+            else:
+                # Default value if the server request fails
+                interarrival_distribution = 'random.expovariate(1.0 / 5)'
+
+            env.process(customer_arrivals_on_distribution(env, clinic, interarrival_distribution))
+        
+        elif interarrival_type == 'By Schedule':
+            response = requests.get('http://127.0.0.1:5000/get_arrival_schedule')
+
+            if response.status_code == 200:
+                schedule = response.json()['arrival_schedule']
+            else:
+                # Default value if the server request fails
+                st.warning("No Schedule found. Upload schedule first")
+                
+            env.process(customer_arrivals_on_schedule(env, clinic, schedule))
+            
+        
         env.process(clinic.record_utilization())
 
         env.run(until=sim_time)
@@ -59,16 +74,19 @@ def app():
         # random_seed = st.number_input('Random Seed', value=42, step=1)
         num_dentists = st.number_input('Number of Dentists', value=1, step=1, min_value=1)
         num_desk_staff = st.number_input('Number of Desk Staff', value=1, step=1, min_value=1)
+         
 
-    with col2:
+    with col2:        
         num_seats = st.number_input('Number of Seats', value=3, step=1, min_value=1)
-        sim_time = st.number_input('Simulation Time (minutes)', value=100, step=1, min_value=1)
+        sim_time = st.number_input('Simulation Time     (minutes)', value=480, step=1, min_value=1)
         # record_interval = st.number_input('Record Interval (minutes)', value=1, step=1, min_value=1)
+    
+    interarrival_type = st.selectbox("Interarrival Type", ("By Fitted Distribution", "By Schedule"))   
 
     if st.button('Run Simulation'):
-        results = run_simulation(num_dentists, num_desk_staff, num_seats, sim_time)
+        results = run_simulation(num_dentists, num_desk_staff, num_seats, sim_time, interarrival_type)
 
-        # Display output metrics in two columns
+        # Display output metrics in two columns 
         col3, col4 = st.columns(2)
 
         with col3:

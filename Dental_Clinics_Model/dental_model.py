@@ -29,6 +29,11 @@ class DentalClinic:
         # Track waiting times
         self.total_waiting_time = 0
         self.customer_wait_times = []
+        
+    # def dentist_schedule(self, dentist_schedule, dentist performance):
+        
+        
+        
 
     def customer_arrival(self, customer):
         arrival_time = self.env.now
@@ -96,7 +101,7 @@ class DentalClinic:
                     self.current_dentist_utilization += 1
                     start_time = self.env.now
 
-                    service_time = random.uniform(5, 10)  # Dummy value
+                    service_time = random.uniform(10, 30)  # Dummy value
                     yield self.env.timeout(service_time)
                     self.dentist_busy_time += self.env.now - start_time
                     self.total_customers_served += 1
@@ -126,12 +131,21 @@ class DentalClinic:
             self.desk_staff_utilization_over_time.append(self.current_desk_staff_utilization)
             self.seater_utilization_over_time.append(self.current_seater_utilization)
 
-def customer_arrivals(env, clinic, interarrival_distribution):
+def customer_arrivals_on_distribution(env, clinic, interarrival_distribution):
     customer_id = 0
     
     interarrival_function = lambda: eval(interarrival_distribution)
     
     while True:
         yield env.timeout(interarrival_function())  # Dummy interarrival time
+        customer_id += 1
+        env.process(clinic.customer_arrival(f'Customer {customer_id}'))
+        
+        
+def customer_arrivals_on_schedule(env, clinic, schedule_df):
+    customer_id = 0
+    
+    for arrival_interval in schedule_df:
+        yield env.timeout(arrival_interval)  # Dummy interarrival time
         customer_id += 1
         env.process(clinic.customer_arrival(f'Customer {customer_id}'))
