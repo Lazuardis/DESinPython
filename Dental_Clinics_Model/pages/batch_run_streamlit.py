@@ -9,11 +9,13 @@ import requests
 def app():
     st.title("Batch Simulation Analysis")
 
+
+    set_dentist_schedule = st.checkbox('Use Roster Schedule', value=False)
     # Input fields for the constants in two columns
     col1, col2 = st.columns(2)
 
     with col1:
-        num_dentists = st.number_input('Number of Dentists', value=1, step=1, min_value=1)
+        num_dentists = st.number_input('Number of Dentists', value=1, step=1, min_value=1, disabled = set_dentist_schedule)
         num_desk_staff = st.number_input('Number of Desk Staff', value=1, step=1, min_value=1)
         num_seats = st.number_input('Number of Seats', value=3, step=1, min_value=1)
         
@@ -35,7 +37,9 @@ def app():
             'num_seats': num_seats,
             'sim_time': sim_time,
             'num_replications': num_replications,
-            'interarrival_type': interarrival_type
+            'interarrival_type': interarrival_type,
+            'set_dentist_schedule': set_dentist_schedule
+            
         })
 
         if response.status_code == 200:

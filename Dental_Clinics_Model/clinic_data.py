@@ -4,59 +4,66 @@ import matplotlib.pyplot as plt
 import seaborn as sns
 import random
 
-# List of all possible treatments
 def get_treatment_list():
     treatments = [
         'Additional Root', 'Advanced Filling', 'Advanced Gum Treatment', 'Basic Filling', 
         'Basic Gum Treatment', 'Basic Scaling', 'Basic Tooth Extraction', 'Basic X-ray', 
         'Consultation', 'Dental Post & Core', 'Dental Spa', 'Membership Consultation Perk', 
         'Mouth Guard', 'Premium Bridge', 'Premium Crown', 'Prevention Seal', 
-        'Root Canal Treatment', 'Wear Protect', 'Advanced Filling', 'Advanced Gum Treatment', 
-        'Premium Bridge', 'Premium Crown', 'Basic Filling', 'Basic Scaling', 
-        'Basic Tooth Extraction', 'Dental Spa', 'Mouth Guard', 'Prevention Seal'
+        'Root Canal Treatment', 'Wear Protect'
     ]
+    # Remove duplicates by converting to a set and back to a list
+    treatments = list(set(treatments))
+    # Sort treatments to ensure consistent order
+    treatments.sort()
     return treatments
 
-# Dictionary representing specialties of each dentist
 def get_specialties_matrix():
     specialties = {
-        'Arnold': {
+        'Arnold': [
             'Additional Root', 'Advanced Filling', 'Advanced Gum Treatment', 'Basic Filling',
             'Basic Gum Treatment', 'Basic Scaling', 'Basic Tooth Extraction', 'Basic X-ray',
             'Consultation', 'Dental Post & Core', 'Dental Spa', 'Membership Consultation Perk',
             'Mouth Guard', 'Premium Bridge', 'Premium Crown', 'Prevention Seal',
             'Root Canal Treatment', 'Wear Protect'
-        },
-        'Ronald': {
+        ],
+        'Ronald': [
             'Additional Root', 'Advanced Filling', 'Advanced Gum Treatment', 'Basic Filling',
             'Basic Gum Treatment', 'Basic Scaling', 'Basic Tooth Extraction', 'Basic X-ray',
             'Consultation', 'Dental Post & Core', 'Dental Spa', 'Membership Consultation Perk',
             'Mouth Guard', 'Premium Bridge', 'Premium Crown', 'Prevention Seal',
             'Root Canal Treatment', 'Wear Protect'
-        },
-        'Reynolds': {
+        ],
+        'Reynolds': [
             'Advanced Filling', 'Advanced Gum Treatment', 'Premium Bridge', 'Premium Crown'
-        },
-        'Miranda': {
+        ],
+        'Miranda': [
             'Basic Filling', 'Basic Scaling', 'Basic Tooth Extraction', 'Dental Spa', 'Mouth Guard'
-        },
-        'Ashley': {'Prevention Seal'},
-        'Meyden': set()  # No specialties
+        ],
+        'Ashley': ['Prevention Seal'],
+        'Meyden': []  # No specialties
     }
-    
+
+    # Sort specialties for each dentist to ensure consistent order
+    for dentist in specialties:
+        specialties[dentist] = sorted(specialties[dentist])
+
     return specialties
 
-# Function to get a random specialty from the combined specialties list
-def get_random_specialty():
-    all_specialties = get_treatment_list()  # Using the treatment list defined above
-    return random.choice(all_specialties) if all_specialties else None
+def generate_dummy_dentist(number_of_dentist):
+    # Comprehensive set of all possible specialties
+    all_specialties = get_treatment_list()
 
-# Example usage
-if __name__ == "__main__":
-    specialties_matrix = get_specialties_matrix()
-    print("Specialties Matrix:")
-    print(specialties_matrix)
+    # Dictionary to store the dummy dentists
+    dummy_dentists = {}
 
-    random_specialty = get_random_specialty()
-    print("\nRandomly Selected Specialty:")
-    print(random_specialty)
+    # Loop to generate each dummy dentist
+    for i in range(1, number_of_dentist + 1):
+        dentist_name = f'Dentist_{i}'
+        # Assign a sorted copy of all specialties to ensure consistency
+        dummy_dentists[dentist_name] = all_specialties.copy()
+
+    return dummy_dentists
+
+
+# test generate_dummy_dentist 

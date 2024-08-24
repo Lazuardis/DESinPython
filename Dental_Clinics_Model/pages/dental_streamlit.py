@@ -8,73 +8,80 @@ import seaborn as sns
 import requests
 
 def app():
-    def run_simulation(num_dentists, num_desk_staff, num_seats, sim_time, interarrival_type):
+    # def run_simulation(num_dentists, num_desk_staff, num_seats, sim_time, interarrival_type, set_dentist_schedule):
         
-        # random.seed(random_seed)
-        env = simpy.Environment()
+    #     # random.seed(random_seed)
+    #     env = simpy.Environment()
 
-        clinic = DentalClinic(env, num_dentists, num_desk_staff, num_seats) 
+    #     clinic = DentalClinic(env, num_dentists, num_desk_staff, num_seats, set_dentist_schedule) 
         
 
-        if interarrival_type == 'By Fitted Distribution':
-            response = requests.get('http://127.0.0.1:5000/get_distribution')
-            # response = requests.get('https://db1a-35-202-194-168.ngrok-free.app/get_distribution')
+    #     if interarrival_type == 'By Fitted Distribution':
+    #         response = requests.get('http://127.0.0.1:5000/get_distribution')
+    #         # response = requests.get('https://db1a-35-202-194-168.ngrok-free.app/get_distribution')
             
-            if response.status_code == 200:
-                interarrival_distribution = response.json()['interarrival_distribution']
-            else:
-                # Default value if the server request fails
-                interarrival_distribution = 'random.expovariate(1.0 / 5)'
+    #         if response.status_code == 200:
+    #             interarrival_distribution = response.json()['interarrival_distribution']
+    #         else:
+    #             # Default value if the server request fails
+    #             interarrival_distribution = 'random.expovariate(1.0 / 5)'
 
-            env.process(customer_arrivals_on_distribution(env, clinic, interarrival_distribution))
+    #         env.process(customer_arrivals_on_distribution(env, clinic, interarrival_distribution))
         
-        elif interarrival_type == 'By Schedule':
-            response = requests.get('http://127.0.0.1:5000/get_arrival_schedule')
+    #     elif interarrival_type == 'By Schedule':
+    #         response = requests.get('http://127.0.0.1:5000/get_arrival_schedule')
 
-            if response.status_code == 200:
-                schedule = response.json()['arrival_schedule']
-            else:
-                # Default value if the server request fails
-                st.warning("No Schedule found. Upload schedule first")
+    #         if response.status_code == 200:
+    #             schedule = response.json()['arrival_schedule']
+    #         else:
+    #             # Default value if the server request fails
+    #             st.warning("No Schedule found. Upload schedule first")
                 
-            env.process(customer_arrivals_on_schedule(env, clinic, schedule))
+    #         env.process(customer_arrivals_on_schedule(env, clinic, schedule))
             
         
-        env.process(clinic.record_utilization())
+    #     env.process(clinic.record_utilization())
         
-        env.run(until=sim_time)
+    #     env.run(until=sim_time)
+        
+    #     # print(clinic.generate_dentist_statistics_df())
+        
+    #     num_dentists = num_dentists if set_dentist_schedule == False else len(get_specialties_matrix())
 
-        # Calculate utilization based on the provided formula
-        dentist_utilization = sum(clinic.dentist_utilization_over_time) / (num_dentists * len(clinic.dentist_utilization_over_time))
-        desk_staff_utilization = sum(clinic.desk_staff_utilization_over_time) / (num_desk_staff * len(clinic.desk_staff_utilization_over_time))
-        seater_utilization = sum(clinic.seater_utilization_over_time) / (num_seats * len(clinic.seater_utilization_over_time))
+    #     # Calculate utilization based on the provided formula
+    #     dentist_utilization = sum(clinic.dentist_utilization_over_time) / (num_dentists * len(clinic.dentist_utilization_over_time))
+    #     desk_staff_utilization = sum(clinic.desk_staff_utilization_over_time) / (num_desk_staff * len(clinic.desk_staff_utilization_over_time))
+    #     seater_utilization = sum(clinic.seater_utilization_over_time) / (num_seats * len(clinic.seater_utilization_over_time))
 
-        # Calculate average waiting time
-        average_waiting_time = sum(clinic.customer_wait_times) / len(clinic.customer_wait_times) if clinic.customer_wait_times else 0
+    #     # Calculate average waiting time
+    #     average_waiting_time = sum(clinic.customer_wait_times) / len(clinic.customer_wait_times) if clinic.customer_wait_times else 0
 
-        # Return the metrics
-        return {
-            "total_customers_arrived": clinic.total_customers_arrived,
-            "total_customers_served": clinic.total_customers_served,
-            "dentist_utilization": dentist_utilization,
-            "desk_staff_utilization": desk_staff_utilization,
-            "seater_utilization": seater_utilization,
-            "average_waiting_time": average_waiting_time,
-            "dentist_utilization_over_time": clinic.dentist_utilization_over_time,
-            "desk_staff_utilization_over_time": clinic.desk_staff_utilization_over_time,
-            "seater_utilization_over_time": clinic.seater_utilization_over_time,
-            "revenue": clinic.revenue
-        }
+    #     # Return the metrics
+    #     return {
+    #         "total_customers_arrived": clinic.total_customers_arrived,
+    #         "total_customers_served": clinic.total_customers_served,
+    #         "dentist_utilization": dentist_utilization,
+    #         "desk_staff_utilization": desk_staff_utilization,
+    #         "seater_utilization": seater_utilization,
+    #         "average_waiting_time": average_waiting_time,
+    #         "dentist_utilization_over_time": clinic.dentist_utilization_over_time,
+    #         "desk_staff_utilization_over_time": clinic.desk_staff_utilization_over_time,
+    #         "seater_utilization_over_time": clinic.seater_utilization_over_time,
+    #         "revenue": clinic.revenue
+    #     }
 
     # Streamlit UI
     st.title('Dental Clinic Simulation')
+
+    set_dentist_schedule = st.checkbox('Use Roster Schedule', value=False)
 
     # Input fields for the constants in two columns
     col1, col2 = st.columns(2)
 
     with col1:
+        
         # random_seed = st.number_input('Random Seed', value=42, step=1)
-        num_dentists = st.number_input('Number of Dentists', value=1, step=1, min_value=1)
+        num_dentists = st.number_input('Number of Dentists', value=1, step=1, min_value=1, disabled=set_dentist_schedule)
         num_desk_staff = st.number_input('Number of Desk Staff', value=1, step=1, min_value=1)
          
 
@@ -86,7 +93,23 @@ def app():
     interarrival_type = st.selectbox("Interarrival Type", ("By Fitted Distribution", "By Schedule"))   
 
     if st.button('Run Simulation'):
-        results = run_simulation(num_dentists, num_desk_staff, num_seats, sim_time, interarrival_type)
+        print(set_dentist_schedule)
+        # results = run_simulation(num_dentists, num_desk_staff, num_seats, sim_time, interarrival_type, set_dentist_schedule)
+        
+        response = requests.post(
+            'http://127.0.0.1:5000/run_simulation_once',
+            json={
+            'num_dentists': num_dentists,
+            'num_desk_staff': num_desk_staff,
+            'num_seats': num_seats,
+            'sim_time': sim_time,
+            'interarrival_type': interarrival_type,
+            'set_dentist_schedule': set_dentist_schedule
+            }
+        )
+        
+        results = response.json()
+        
 
         # Display output metrics in two columns 
         col3, col4 = st.columns(2)
