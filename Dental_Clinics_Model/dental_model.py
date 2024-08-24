@@ -1,12 +1,29 @@
 import simpy
 import random
+import pandas as pd
+import numpy as np
+from clinic_data import get_specialties_matrix, get_treatment_list
+
+
+class Dentist:
+    def __init__(self, name, specialties):
+        self.name = name
+        self.specialties = specialties  # Set or list of procedures the dentist can perform
 
 class DentalClinic:
     def __init__(self, env, num_dentists, num_desk_staff, num_seats):
         self.env = env
-        self.dentists = simpy.Resource(env, num_dentists)
+
         self.desk_staff = simpy.Resource(env, num_desk_staff)
         self.seats = simpy.Resource(env, num_seats)
+        
+        self.dentists = simpy.FilterStore(self.env)
+        
+        specialties_matrix = get_specialties_matrix()
+        
+        for name, specialties in specialties_matrix.items():
+            self.dentists.put(Dentist(name, specialties))
+        
         self.total_customers_arrived = 0
         self.total_customers_served = 0
         self.revenue = 0
@@ -30,11 +47,7 @@ class DentalClinic:
         self.total_waiting_time = 0
         self.customer_wait_times = []
         
-    # def dentist_schedule(self, dentist_schedule, dentist performance):
         
-        
-        
-
     def customer_arrival(self, customer):
         arrival_time = self.env.now
         self.total_customers_arrived += 1
@@ -79,50 +92,77 @@ class DentalClinic:
         yield self.env.process(self.dental_treatment(customer, arrival_time))
 
     def dental_treatment(self, customer, arrival_time):
-        with self.dentists.request() as dentist_request, self.seats.request() as seat_request:
+        # Choose a random specialty that the customer requires (for simulation purposes)
+        required_specialty = random.choice(get_treatment_list())
+
+        
+        # Request a dentist who can perform the required specialty
+        dentist_request = self.dentists.get(lambda dentist: required_specialty in dentist.specialties)
+        
+        # Request a seat for the customer
+        seat_request = self.seats.request()
+        
+        waiting_dentist_time = self.env.now
+        
+        # Wait until either a seat or a suitable dentist is available
+        decision = yield dentist_request | seat_request
+
+        if seat_request in decision:
+            # If a seat becomes available first
+            self.current_seater_utilization += 1
             
-            waiting_dentist_time = self.env.now
+            # Wait for the seat to become available
+            yield seat_request
+            self.seats.release(seat_request)
+            self.seater_busy_time += self.env.now - waiting_dentist_time
+            self.current_seater_utilization -= 1
+
+            # Now wait for the dentist to become available
+            dentist = yield dentist_request
+            self.current_dentist_utilization += 1
+
+            # Record the wait time before treatment
+            wait_time = self.env.now - waiting_dentist_time
+            self.total_waiting_time += wait_time
+            self.customer_wait_times.append(wait_time)
+
+            # Perform the dental treatment
+            service_time = random.uniform(10, 30)  # Dummy value for service time
+            yield self.env.timeout(service_time)
             
-            decision = yield dentist_request | seat_request
+            # Record dentist busy time
+            self.dentist_busy_time += self.env.now - self.env.now + wait_time
+            self.total_customers_served += 1
+            self.current_dentist_utilization -= 1
 
-            if seat_request in decision:
-                self.current_seater_utilization += 1
-                with dentist_request:
-                    yield dentist_request
-                    self.seats.release(seat_request)
-                    self.seater_busy_time += self.env.now - waiting_dentist_time
-                    self.current_seater_utilization -= 1
-                    
-                    # Record total waiting time before dental treatment
-                    wait_time = self.env.now - waiting_dentist_time
-                    self.total_waiting_time += wait_time
-                    self.customer_wait_times.append(wait_time)
-                    
-                    self.current_dentist_utilization += 1
-                    start_time = self.env.now
+            # Return the dentist to the FilterStore
+            self.dentists.put(dentist)
+            
+        else:
+            # If a suitable dentist is available before a seat
+            dentist = yield dentist_request
+            self.current_dentist_utilization += 1
 
-                    service_time = random.uniform(10, 30)  # Dummy value
-                    yield self.env.timeout(service_time)
-                    self.dentist_busy_time += self.env.now - start_time
-                    self.total_customers_served += 1
-                    self.current_dentist_utilization -= 1
-            else:
-                self.current_dentist_utilization += 1
+            # Record the wait time before treatment
+            wait_time = self.env.now - arrival_time
+            self.total_waiting_time += wait_time
+            self.customer_wait_times.append(wait_time)
 
-                start_time = self.env.now
+            # Perform the dental treatment
+            service_time = random.uniform(5, 10)  # Dummy value for service time
+            yield self.env.timeout(service_time)
+            
+            # Record dentist busy time
+            self.dentist_busy_time += self.env.now - self.env.now + wait_time
+            self.total_customers_served += 1
+            self.current_dentist_utilization -= 1
 
-                # Record total waiting time before dental treatment
-                wait_time = self.env.now - arrival_time
-                self.total_waiting_time += wait_time
-                self.customer_wait_times.append(wait_time)
+            # Return the dentist to the FilterStore
+            self.dentists.put(dentist)
+            
+        # Update revenue
+        self.revenue += 50  # Dummy revenue value
 
-                service_time = random.uniform(5, 10)  # Dummy value
-                yield self.env.timeout(service_time)
-                self.dentist_busy_time += self.env.now - start_time
-                self.total_customers_served += 1
-                self.current_dentist_utilization -= 1
-                
-        self.revenue += 50  # Dummy revenue
 
     def record_utilization(self, record_interval=1):
         while True:

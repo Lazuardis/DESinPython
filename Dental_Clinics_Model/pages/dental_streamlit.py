@@ -1,7 +1,8 @@
 import streamlit as st
 import simpy
 import random
-from dental_model import DentalClinic, customer_arrivals_on_distribution, customer_arrivals_on_schedule
+from dental_model import DentalClinic, Dentist, customer_arrivals_on_distribution, customer_arrivals_on_schedule
+from clinic_data import get_specialties_matrix, get_treatment_list
 import matplotlib.pyplot as plt
 import seaborn as sns
 import requests
@@ -13,6 +14,7 @@ def app():
         env = simpy.Environment()
 
         clinic = DentalClinic(env, num_dentists, num_desk_staff, num_seats) 
+        
 
         if interarrival_type == 'By Fitted Distribution':
             response = requests.get('http://127.0.0.1:5000/get_distribution')
@@ -39,7 +41,7 @@ def app():
             
         
         env.process(clinic.record_utilization())
-
+        
         env.run(until=sim_time)
 
         # Calculate utilization based on the provided formula
