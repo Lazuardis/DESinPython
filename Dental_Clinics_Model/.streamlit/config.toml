@@ -1,2 +1,5 @@
 [server]
 enableXsrfProtection = false
+
+[theme]
+base="light"

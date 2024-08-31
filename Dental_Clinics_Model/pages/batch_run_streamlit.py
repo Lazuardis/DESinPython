@@ -9,11 +9,13 @@ import requests
 def app():
     st.title("Batch Simulation Analysis")
 
+
+    set_dentist_schedule = st.checkbox('Use Roster Schedule', value=False)
     # Input fields for the constants in two columns
     col1, col2 = st.columns(2)
 
     with col1:
-        num_dentists = st.number_input('Number of Dentists', value=1, step=1, min_value=1)
+        num_dentists = st.number_input('Number of Dentists', value=1, step=1, min_value=1, disabled = set_dentist_schedule)
         num_desk_staff = st.number_input('Number of Desk Staff', value=1, step=1, min_value=1)
         num_seats = st.number_input('Number of Seats', value=3, step=1, min_value=1)
         
@@ -35,11 +37,23 @@ def app():
             'num_seats': num_seats,
             'sim_time': sim_time,
             'num_replications': num_replications,
-            'interarrival_type': interarrival_type
+            'interarrival_type': interarrival_type,
+            'set_dentist_schedule': set_dentist_schedule
+            
         })
 
         if response.status_code == 200:
             results = response.json()
+            
+            st.markdown("### Estimated Revenue Across All Replications")
+            st.metric(label="Average Revenue", value=f"${results['avg_revenue']:.2f}")
+            st.metric(label="Revenue Standard Deviation", value=f"${results['std_revenue']:.2f}")
+            plt.figure(figsize=(10, 6))
+            sns.histplot(data=results["revenue_array"], kde=True)
+            plt.ylabel("Frequency")
+            plt.xlabel("Revenue")
+            plt.title("Revenue Across Replications")
+            st.pyplot(plt)
 
             st.markdown("### Mean Utilization Across All Replications")
             st.metric(label="Average Dentist Utilization", value=f"{results['avg_dentist_utilization']:.2%}")
@@ -56,13 +70,13 @@ def app():
             plt.title("Dentist Utilization Across Replications")
             st.pyplot(plt)
 
-            st.markdown("### Seater Utilization Across Replications")
-            plt.figure(figsize=(10, 6))
-            sns.histplot(data=results["seater_utilizations"], kde=True)
-            plt.ylabel("Frequency")
-            plt.xlabel("Seater Utilization")
-            plt.title("Seater Utilization Across Replications")
-            st.pyplot(plt)
+            # st.markdown("### Seater Utilization Across Replications")
+            # plt.figure(figsize=(10, 6))
+            # sns.histplot(data=results["seater_utilizations"], kde=True)
+            # plt.ylabel("Frequency")
+            # plt.xlabel("Seater Utilization")
+            # plt.title("Seater Utilization Across Replications")
+            # st.pyplot(plt)
             
             #plot the average waiting time
             st.markdown("### Average Waiting Time Across Replications")
