@@ -44,6 +44,16 @@ def app():
 
         if response.status_code == 200:
             results = response.json()
+            
+            st.markdown("### Estimated Revenue Across All Replications")
+            st.metric(label="Average Revenue", value=f"${results['avg_revenue']:.2f}")
+            st.metric(label="Revenue Standard Deviation", value=f"${results['std_revenue']:.2f}")
+            plt.figure(figsize=(10, 6))
+            sns.histplot(data=results["revenue_array"], kde=True)
+            plt.ylabel("Frequency")
+            plt.xlabel("Revenue")
+            plt.title("Revenue Across Replications")
+            st.pyplot(plt)
 
             st.markdown("### Mean Utilization Across All Replications")
             st.metric(label="Average Dentist Utilization", value=f"{results['avg_dentist_utilization']:.2%}")
@@ -60,13 +70,13 @@ def app():
             plt.title("Dentist Utilization Across Replications")
             st.pyplot(plt)
 
-            st.markdown("### Seater Utilization Across Replications")
-            plt.figure(figsize=(10, 6))
-            sns.histplot(data=results["seater_utilizations"], kde=True)
-            plt.ylabel("Frequency")
-            plt.xlabel("Seater Utilization")
-            plt.title("Seater Utilization Across Replications")
-            st.pyplot(plt)
+            # st.markdown("### Seater Utilization Across Replications")
+            # plt.figure(figsize=(10, 6))
+            # sns.histplot(data=results["seater_utilizations"], kde=True)
+            # plt.ylabel("Frequency")
+            # plt.xlabel("Seater Utilization")
+            # plt.title("Seater Utilization Across Replications")
+            # st.pyplot(plt)
             
             #plot the average waiting time
             st.markdown("### Average Waiting Time Across Replications")

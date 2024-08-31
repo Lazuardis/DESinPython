@@ -114,6 +114,7 @@ def run_multiple_simulations(num_dentists, num_desk_staff, num_seats, sim_time, 
     desk_staff_utilizations = []
     seater_utilizations = []
     avg_waiting_time_list = []
+    revenue_array = []
 
     for _ in range(num_replications):
         results = run_single_simulation(num_dentists, num_desk_staff, num_seats, sim_time, interarrival_type, set_dentist_schedule)
@@ -121,11 +122,14 @@ def run_multiple_simulations(num_dentists, num_desk_staff, num_seats, sim_time, 
         desk_staff_utilizations.append(results['desk_staff_utilization'])
         seater_utilizations.append(results['seater_utilization'])
         avg_waiting_time_list.append(results['average_waiting_time'])
+        revenue_array.append(results['revenue'])
 
     avg_dentist_utilization = sum(dentist_utilizations) / num_replications
     avg_desk_staff_utilization = sum(desk_staff_utilizations) / num_replications
     avg_seater_utilization = sum(seater_utilizations) / num_replications
     avg_waiting_time_all = sum(avg_waiting_time_list) / num_replications
+    avg_revenue = sum(revenue_array) / num_replications
+    std_revenue = np.std(revenue_array)
 
     return {
         "dentist_utilizations": dentist_utilizations,
@@ -135,7 +139,10 @@ def run_multiple_simulations(num_dentists, num_desk_staff, num_seats, sim_time, 
         "avg_dentist_utilization": avg_dentist_utilization,
         "avg_desk_staff_utilization": avg_desk_staff_utilization,
         "avg_seater_utilization": avg_seater_utilization,
-        "avg_waiting_time_all": avg_waiting_time_all
+        "avg_waiting_time_all": avg_waiting_time_all,
+        "revenue_array": revenue_array,
+        "avg_revenue": avg_revenue,
+        "std_revenue": std_revenue
     }
 
 if __name__ == '__main__':
