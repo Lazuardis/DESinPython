@@ -7,6 +7,7 @@ import requests
 
 def app():
     st.title("Input Processing and Fitting")
+    
 
     # File uploader to upload the CSV file
     uploaded_file = st.file_uploader("Upload CSV with Arrival Times", type="csv")
@@ -70,6 +71,32 @@ def app():
                 else:
                     st.error("Failed to send Schedule to the server.")
                     
+                    
+                    
+    else:
+        
+        st.divider()
+        
+        st.markdown("### Define the Inter-arrival times Manually")
+        
+        rate = st.number_input("Inter-Arrival Time Mean (Minutes)", value=5, step=1)
+        st.caption('Distribution used: Exponential. If mean equal to 5, it means one customer arrive every 5 minutes')
+        
+        interarrival_distribution = f"random.expovariate({1/rate})"
+        
+        if st.button('Save and Use Distribution Data'):
+        # POST the interarrival_distribution to the Flask server
+            response = requests.post(
+                'http://127.0.0.1:5000/set_distribution', 
+                # 'https://db1a-35-202-194-168.ngrok-free.app/set_distribution',
+                json={'interarrival_distribution': interarrival_distribution}
+            )
+        
+            if response.status_code == 200:
+                st.success("Distribution successfully sent to the server!")
+            else:
+                st.error("Failed to send distribution to the server.")       
+                        
 
 
     #streamlit run fitting_distribution_streamlit.py --server.enableXsrfProtection false

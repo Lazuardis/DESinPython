@@ -2,7 +2,7 @@ import simpy
 import random
 import pandas as pd
 import numpy as np
-from clinic_data import get_specialties_matrix, get_treatment_list, generate_dummy_dentist
+from clinic_data import *
 
 
 class Dentist:
@@ -27,7 +27,7 @@ class Dentist:
 
 
 class DentalClinic:
-    def __init__(self, env, num_dentists, num_desk_staff, num_seats, set_dentist_schedule):
+    def __init__(self, env, num_dentists, num_desk_staff, num_seats, set_dentist_schedule, treatment_demand_list=None):
         self.env = env
 
         self.desk_staff = simpy.Resource(env, num_desk_staff)
@@ -37,10 +37,10 @@ class DentalClinic:
         
         if set_dentist_schedule == True:
             dentist_matrix = get_specialties_matrix()
-            print(dentist_matrix)
+
         else:
             dentist_matrix = generate_dummy_dentist(num_dentists)
-            print(dentist_matrix)
+
         
         for name, specialties in dentist_matrix.items():
             self.dentists.put(Dentist(name, specialties))
@@ -69,10 +69,18 @@ class DentalClinic:
         self.customer_wait_times = []
         
         
-    def customer_arrival(self, customer):
+        
+    
+    def customer_arrival(self, customer, treatment_demand_list=None):
         arrival_time = self.env.now
         self.total_customers_arrived += 1
-        treatment = random.choice(get_treatment_list())
+        
+        if treatment_demand_list is not None:
+            
+            treatment = treatment_demand_list[self.total_customers_arrived-1]
+            
+        else:
+            treatment = random.choice(get_treatment_list())
         yield self.env.process(self.administration_process(customer, arrival_time, treatment))
 
     def administration_process(self, customer, arrival_time, treatment):
@@ -148,6 +156,7 @@ class DentalClinic:
 
                 # Perform the dental treatment
                 service_time = random.uniform(10, 30)  # Dummy value for service time
+                service_time = get_treatment_duration(treatment)
                 yield self.env.timeout(service_time)
                 
                 dentist.end_busy(self.env.now)
@@ -164,7 +173,6 @@ class DentalClinic:
                 # If a suitable dentist is available before a seat
                 dentist = yield dentist_request
                 
-                print(dentist.name)
 
                 dentist.start_busy(self.env.now)  
                 self.current_dentist_utilization += 1      
@@ -175,7 +183,8 @@ class DentalClinic:
                 self.customer_wait_times.append(wait_time)
 
                 # Perform the dental treatment
-                service_time = random.uniform(5, 10)  # Dummy value for service time
+                service_time = random.uniform(5, 10)  # Dummy value for service time\
+                service_time = get_treatment_duration(treatment)
                 yield self.env.timeout(service_time)
                 
                 dentist.end_busy(self.env.now)
@@ -189,8 +198,11 @@ class DentalClinic:
                 
                 self.current_dentist_utilization -= 1
                 
+                
             # Update revenue
             self.revenue += 50  # Dummy revenue value
+            
+            
 
 
     def record_utilization(self, record_interval=1):
@@ -225,16 +237,16 @@ class DentalClinic:
 
     #     return dentist_df
 
-def customer_arrivals_on_distribution(env, clinic, interarrival_distribution):
+def customer_arrivals_on_distribution(env, clinic, interarrival_distribution, sim_time):
     customer_id = 0
     
     interarrival_function = lambda: eval(interarrival_distribution)
     
-    while True:
+    while env.now < sim_time:
         yield env.timeout(interarrival_function())  # Dummy interarrival time
         customer_id += 1
         env.process(clinic.customer_arrival(f'Customer {customer_id}'))
-        
+            
         
 def customer_arrivals_on_schedule(env, clinic, schedule_df):
     customer_id = 0
@@ -244,3 +256,19 @@ def customer_arrivals_on_schedule(env, clinic, schedule_df):
         customer_id += 1
         env.process(clinic.customer_arrival(f'Customer {customer_id}'))
         
+def terminating_condition(env, clinic, sim_time, terminate):
+
+    while True:
+        yield env.timeout(1)
+        if clinic.env.now >= sim_time:
+            if clinic.total_customers_served == clinic.total_customers_arrived:
+                print(env.now)   
+                terminate.succeed()
+                 
+                
+def terminating_condition_schedule(env, clinic, terminate, schedule_df):
+
+    while True:
+        yield env.timeout(1)
+        if clinic.total_customers_served == len(schedule_df):
+            terminate.succeed()    

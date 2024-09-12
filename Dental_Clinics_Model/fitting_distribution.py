@@ -66,3 +66,4 @@ def fit_distribution_interarrival(inter_arrival_times):
 
     # Return the distribution as a string
     return interarrival_distribution
+

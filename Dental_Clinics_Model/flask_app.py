@@ -1,7 +1,7 @@
 from flask import Flask, request, jsonify
 import random
 import simpy
-from dental_model import DentalClinic, customer_arrivals_on_distribution, customer_arrivals_on_schedule
+from dental_model import *
 from clinic_data import *
 import requests
 
@@ -45,14 +45,97 @@ def run_simulation_individual():
     sim_time = data['sim_time']
     interarrival_type = data['interarrival_type']
     set_dentist_schedule = data.get('set_dentist_schedule', False)
-
+    num_days = data['num_days']
+    customer_treatment_pattern = data['customer_treatment_pattern']
+    
+    if customer_treatment_pattern == 'Random':
     # Use run_single_simulation as the reference
-    results = run_single_simulation(num_dentists, num_desk_staff, num_seats, sim_time, interarrival_type, set_dentist_schedule)
+    # results = run_single_simulation(num_dentists, num_desk_staff, num_seats, sim_time, interarrival_type, set_dentist_schedule)
+        results = run_single_sim_multiple_days(num_days, num_dentists, num_desk_staff, num_seats, sim_time, interarrival_type, set_dentist_schedule)
+        
+    else:
+        
+        treatment_demand = retrieve_treatment_name()
+        
+        results = run_single_sim_multiple_days(num_days, num_dentists, num_desk_staff, num_seats, sim_time, interarrival_type, set_dentist_schedule, customer_treatment_pattern=treatment_demand)
+        
+        
+    
     return jsonify(results)
 
+def run_single_sim_multiple_days(num_days, num_dentists, num_desk_staff, num_seats, sim_time, interarrival_type, set_dentist_schedule, customer_treatment_pattern=None):
+    # Initialize lists to store cumulative results
+    total_customers_arrived = 0
+    total_customers_served = 0
+    total_dentist_utilization = []
+    total_desk_staff_utilization = []
+    total_seater_utilization = []
+    total_waiting_time = 0
+    total_revenue = 0
+    
+    if customer_treatment_pattern is not None:
+        
+        customer_treatment_pattern = dict(list(customer_treatment_pattern.items())[:num_days])
+        
+        for day in range(num_days):
+            
+            day_index = list(customer_treatment_pattern.keys())[day]
+            treatment_demand_list  = customer_treatment_pattern[day_index]
+            
+            result = run_single_simulation(num_dentists, num_desk_staff, num_seats, sim_time, interarrival_type, set_dentist_schedule)
+
+            # Aggregate results
+            total_customers_arrived += result["total_customers_arrived"]
+            total_customers_served += result["total_customers_served"]
+            total_dentist_utilization.extend(result["dentist_utilization_over_time"])
+            total_desk_staff_utilization.extend(result["desk_staff_utilization_over_time"])
+            total_seater_utilization.extend(result["seater_utilization_over_time"])
+            total_waiting_time += result["average_waiting_time"] * result["total_customers_served"]  # Weighted by served customers
+            total_revenue += result["revenue"]
+            
+    
+    else:
+
+    # Loop through the number of days
+        for day in range(num_days):
+            # Run a single simulation for the day
+            result = run_single_simulation(num_dentists, num_desk_staff, num_seats, sim_time, interarrival_type, set_dentist_schedule)
+
+            # Aggregate results
+            total_customers_arrived += result["total_customers_arrived"]
+            total_customers_served += result["total_customers_served"]
+            total_dentist_utilization.extend(result["dentist_utilization_over_time"])
+            total_desk_staff_utilization.extend(result["desk_staff_utilization_over_time"])
+            total_seater_utilization.extend(result["seater_utilization_over_time"])
+            total_waiting_time += result["average_waiting_time"] * result["total_customers_served"]  # Weighted by served customers
+            total_revenue += result["revenue"]
+
+    # Calculate averages where necessary
+    avg_dentist_utilization = sum(total_dentist_utilization) / (len(total_dentist_utilization) * num_dentists) if total_dentist_utilization else 0
+    avg_desk_staff_utilization = sum(total_desk_staff_utilization) / (len(total_desk_staff_utilization) * num_desk_staff) if total_desk_staff_utilization else 0
+    avg_seater_utilization = sum(total_seater_utilization) / (len(total_seater_utilization) * num_seats) if total_seater_utilization else 0
+    avg_waiting_time = total_waiting_time / total_customers_served if total_customers_served else 0
+
+    # Return aggregated results
+    return {
+        "total_customers_arrived": total_customers_arrived,
+        "total_customers_served": total_customers_served,
+        "dentist_utilization": avg_dentist_utilization,
+        "desk_staff_utilization": avg_desk_staff_utilization,
+        "seater_utilization": avg_seater_utilization,
+        "average_waiting_time": avg_waiting_time,
+        "revenue": total_revenue,
+        "dentist_utilization_over_time": total_dentist_utilization,
+        "desk_staff_utilization_over_time": total_desk_staff_utilization,
+        "seater_utilization_over_time": total_seater_utilization
+    }
+
+
 def run_single_simulation(num_dentists, num_desk_staff, num_seats, sim_time, interarrival_type, set_dentist_schedule):
+
     env = simpy.Environment()
     clinic = DentalClinic(env, num_dentists, num_desk_staff, num_seats, set_dentist_schedule)
+    terminate = env.event()
 
     if interarrival_type == 'By Fitted Distribution':
         response = requests.get('http://127.0.0.1:5000/get_distribution')
@@ -60,7 +143,8 @@ def run_single_simulation(num_dentists, num_desk_staff, num_seats, sim_time, int
             interarrival_distribution = response.json()['interarrival_distribution']
         else:
             interarrival_distribution = 'random.expovariate(1.0 / 5)'
-        env.process(customer_arrivals_on_distribution(env, clinic, interarrival_distribution))
+        env.process(customer_arrivals_on_distribution(env, clinic, interarrival_distribution, sim_time))
+        env.process(terminating_condition(env, clinic, sim_time, terminate))
 
     elif interarrival_type == 'By Schedule':
         response = requests.get('http://127.0.0.1:5000/get_arrival_schedule')
@@ -70,9 +154,14 @@ def run_single_simulation(num_dentists, num_desk_staff, num_seats, sim_time, int
             schedule = []
             print("No Schedule found. Upload schedule first")
         env.process(customer_arrivals_on_schedule(env, clinic, schedule))
+        env.process(terminating_condition_schedule(env, clinic, terminate, schedule))
 
+    
+    
     env.process(clinic.record_utilization())
-    env.run(until=sim_time)
+    
+    env.run(until=terminate)
+
 
     num_dentists = num_dentists if not set_dentist_schedule else len(get_specialties_matrix())
 

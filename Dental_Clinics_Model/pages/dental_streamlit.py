@@ -83,17 +83,19 @@ def app():
         # random_seed = st.number_input('Random Seed', value=42, step=1)
         num_dentists = st.number_input('Number of Dentists', value=1, step=1, min_value=1, disabled=set_dentist_schedule)
         num_desk_staff = st.number_input('Number of Desk Staff', value=1, step=1, min_value=1)
-         
+        num_seats = st.number_input('Number of Seats', value=3, step=1, min_value=1) 
 
     with col2:        
-        num_seats = st.number_input('Number of Seats', value=3, step=1, min_value=1)
+        
         sim_time = st.number_input('Simulation Time     (minutes)', value=480, step=1, min_value=1)
+        num_days = st.number_input('Number of Days', value=1, step=1, min_value=1)
         # record_interval = st.number_input('Record Interval (minutes)', value=1, step=1, min_value=1)
+        interarrival_type = st.selectbox("Interarrival Type", ("By Fitted Distribution", "By Schedule"))   
     
-    interarrival_type = st.selectbox("Interarrival Type", ("By Fitted Distribution", "By Schedule"))   
+    customer_treatment_pattern = st.selectbox("Treatment Demand Pattern", ("Random", "Based on Historical Data"), help="Random means simulation will label treatment required by patient randomly")
 
     if st.button('Run Simulation'):
-        print(set_dentist_schedule)
+   
         # results = run_simulation(num_dentists, num_desk_staff, num_seats, sim_time, interarrival_type, set_dentist_schedule)
         
         response = requests.post(
@@ -104,7 +106,9 @@ def app():
             'num_seats': num_seats,
             'sim_time': sim_time,
             'interarrival_type': interarrival_type,
-            'set_dentist_schedule': set_dentist_schedule
+            'set_dentist_schedule': set_dentist_schedule,
+            'num_days': num_days,
+            'customer_treatment_pattern': customer_treatment_pattern
             }
         )
         
