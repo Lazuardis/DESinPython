@@ -10,6 +10,6 @@ Feel free to contribute 🤘
 
 Outline:
 
-#### Coffee Pizza Eatery Study Case
+## Coffee Pizza Eatery Study Case
 This repository demonstrates case study explained in series of around 4 episodes. 
 Please refer to this article series as your guideline to get in touch with [THIS](https://medium.com/@lazuardy.almuzaki/list/des-in-python-0c5031690e46) repository study case
